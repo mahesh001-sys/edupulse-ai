@@ -14,37 +14,50 @@ st.set_page_config(
 st.title("📚 EduPulse AI")
 st.caption("Ask questions about your PDF documents.")
 
+# Keep the pipeline and selected document available across Streamlit reruns.
+if "pipeline" not in st.session_state:
+    st.session_state["pipeline"] = None
+
+if "document_id" not in st.session_state:
+    st.session_state["document_id"] = None
+
+if "document_name" not in st.session_state:
+    st.session_state["document_name"] = None
+
+
 with st.sidebar:
     st.header("Upload your PDF")
 
     uploaded_file = st.file_uploader(
         "Choose a PDF file",
         type=["pdf"],
+        accept_multiple_files=False,
+        help="Select a PDF document to ask questions about.",
     )
 
-    if uploaded_file:
-        st.success(f"Uploaded: {uploaded_file.name}")
+    if uploaded_file is not None:
+        st.write("File received:", uploaded_file.name)
+        st.write("Size:", f"{uploaded_file.size:,} bytes")
 
-if uploaded_file:
-    if st.button("Process PDF"):
-        try:
-            with st.spinner("Processing your PDF..."):
-                pipeline = RAGPipeline()
+        if st.button("Process PDF", type="primary"):
+            try:
+                with st.spinner("Processing your PDF..."):
+                    pdf_bytes = uploaded_file.getvalue()
 
-                document_id = pipeline.index_pdf(
-                    uploaded_file.getvalue()
-                )
+                    pipeline = RAGPipeline()
+                    document_id = pipeline.index_pdf(pdf_bytes)
 
-                st.session_state["pipeline"] = pipeline
-                st.session_state["document_id"] = document_id
-                st.session_state["document_name"] = uploaded_file.name
+                    st.session_state["pipeline"] = pipeline
+                    st.session_state["document_id"] = document_id
+                    st.session_state["document_name"] = uploaded_file.name
 
-            st.success("PDF processed successfully!")
+                st.success("PDF processed successfully!")
 
-        except Exception as exc:
-            st.error(f"Unable to process PDF: {exc}")
+            except Exception as exc:
+                st.error(f"Unable to process PDF: {exc}")
 
-if "document_id" in st.session_state:
+
+if st.session_state["document_id"] is not None:
     st.subheader(
         f"Ask questions about {st.session_state['document_name']}"
     )
