@@ -3,10 +3,8 @@ from io import BytesIO
 import pytest
 from pypdf import PdfWriter
 
-from src.pdf_processor import (
-    chunk_pdf_pages,
-    extract_pdf_pages,
-)
+from src.ingestion.loader import extract_pdf_pages
+from src.chunking.text_chunker import chunk_pdf_pages
 
 
 def create_test_pdf() -> bytes:

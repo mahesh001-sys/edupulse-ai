@@ -3,13 +3,10 @@
 import hashlib
 from pathlib import Path
 from typing import List, Optional
-
 import chromadb
-from chromadb.utils.embedding_functions import (
-    SentenceTransformerEmbeddingFunction,
-)
+from src.embeddings.embedding_function import create_embedding_function
 
-from src.pdf_processor import DocumentChunk
+from src.chunking.text_chunker import DocumentChunk
 
 
 class VectorStore:
@@ -23,9 +20,7 @@ class VectorStore:
         self.db_path = Path(db_path)
         self.db_path.mkdir(parents=True, exist_ok=True)
 
-        self.embedding_function = SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"
-        )
+        self.embedding_function = create_embedding_function()
 
         self.client = chromadb.PersistentClient(
             path=str(self.db_path)

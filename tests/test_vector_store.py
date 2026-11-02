@@ -1,7 +1,7 @@
 import pytest
 
-from src.pdf_processor import DocumentChunk
-from src.vector_store import VectorStore
+from src.chunking.text_chunker import DocumentChunk
+from src.vectordb.vector_store import VectorStore
 
 
 @pytest.fixture

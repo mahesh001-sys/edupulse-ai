@@ -1,38 +1,62 @@
 """RAG pipeline for EduPulse AI."""
 
 import os
+from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
 from openai import OpenAI
 
-from src.pdf_processor import chunk_pdf_pages, extract_pdf_pages
-from src.vector_store import VectorStore
+from src.ingestion.loader import extract_pdf_pages
+from src.chunking.text_chunker import chunk_pdf_pages
+from src.llm.answer_generator import AnswerGenerator
+from src.retrieval.retriever import Retriever
+from src.vectordb.vector_store import VectorStore
+
+# Load the project's .env file, located one folder above src/.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ENV_FILE = PROJECT_ROOT / ".env"
+load_dotenv(dotenv_path=ENV_FILE)
 
 
 class RAGPipeline:
-    """Retrieve PDF context and generate answers with citations."""
+    """Index PDF content and answer questions using retrieved context."""
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         model: str = "gpt-4o-mini",
         db_path: str = "chroma_db",
-    ):
-        api_key = api_key or os.getenv("OPENAI_API_KEY")
+    ) -> None:
+        resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
 
-        if not api_key:
+        if not resolved_api_key:
             raise ValueError(
-                "Missing OpenAI API key. Set OPENAI_API_KEY."
+                "Missing OpenAI API key. Add OPENAI_API_KEY to the "
+                "project-root .env file, then restart Streamlit."
             )
 
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=resolved_api_key)
         self.model = model
         self.vector_store = VectorStore(db_path=db_path)
+        self.retriever = Retriever(self.vector_store)
+        self.answer_generator = AnswerGenerator(self.client, self.model)
 
     def index_pdf(self, pdf_bytes: bytes) -> str:
-        """Extract, chunk, and store a PDF."""
+        """Extract and chunk a PDF, then store its chunks."""
+        if not pdf_bytes:
+            raise ValueError("The uploaded PDF is empty.")
+
         pages = extract_pdf_pages(pdf_bytes)
+        if not pages:
+            raise ValueError(
+                "No readable text was found in the PDF. "
+                "It may be scanned or image-only."
+            )
+
         chunks = chunk_pdf_pages(pages)
+        if not chunks:
+            raise ValueError("No text chunks could be created from the PDF.")
 
         document_id = self.vector_store.create_document_id(pdf_bytes)
         self.vector_store.add_chunks(chunks, document_id)
@@ -45,12 +69,15 @@ class RAGPipeline:
         document_id: str,
         n_results: int = 4,
     ) -> dict:
-        """Answer a question using retrieved PDF passages."""
-        if not question.strip():
+        """Answer a question using matching PDF chunks."""
+        if not question or not question.strip():
             raise ValueError("Question cannot be empty.")
 
-        results = self.vector_store.search(
-            query=question,
+        if not document_id:
+            raise ValueError("A processed PDF is required.")
+
+        results = self.retriever.retrieve(
+            question=question,
             n_results=n_results,
             document_id=document_id,
         )
@@ -66,31 +93,7 @@ class RAGPipeline:
             for item in results
         )
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            temperature=0,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Answer the user's question using only the "
-                        "provided PDF context. If the answer is not "
-                        "supported by the context, say you cannot "
-                        "find it in the document. Cite sources using "
-                        "the exact format [Page N]."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"PDF context:\n{context}\n\n"
-                        f"Question: {question}"
-                    ),
-                },
-            ],
-        )
-
-        answer = response.choices[0].message.content or ""
+        answer = self.answer_generator.generate(context, question)
 
         return {
             "answer": answer,
