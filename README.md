@@ -1,99 +1,64 @@
-# EduPulse AI — PDF Question Answering with RAG
 
-An AI-powered study assistant that helps students understand their study materials by asking questions directly from PDF documents.
+# EduPulse AI — PDF Study Assistant with RAG
 
-EduPulse AI uses **Retrieval-Augmented Generation (RAG)** to retrieve relevant information from uploaded documents and generate context-aware answers with page-level citations.
-
-## Overview
-
-Students often spend considerable time searching through lengthy textbooks, lecture notes, and study materials to find answers to specific questions.
-
-EduPulse AI aims to simplify this process by allowing students to upload their PDF documents and interact with their content through a conversational interface.
-
-Instead of relying only on the language model's general knowledge, the application retrieves relevant information from the uploaded documents and uses it to generate answers.
+EduPulse AI is an AI-powered study assistant that helps students learn from PDF documents. It uses **Retrieval-Augmented Generation (RAG)** to retrieve relevant passages and generate document-grounded answers, quizzes, and flashcards with page references.
 
 ## Features
 
-- **PDF Question Answering:** Ask questions about the content of uploaded PDF documents.
-- **Retrieval-Augmented Generation:** Retrieve relevant document sections before generating an answer.
-- **Semantic Search:** Use vector embeddings to identify relevant content based on meaning.
-- **Page-Level Citations:** Display source page references to help users verify answers.
-- **Interactive Chat Interface:** Interact with study materials through a Streamlit-based interface.
-- **Document-Based Responses:** Ground answers in retrieved document content to reduce unsupported responses.
+- **PDF question answering:** Ask questions about uploaded study materials.
+- **Semantic retrieval:** Find relevant document passages using vector embeddings.
+- **Page references:** Show source pages so users can verify information.
+- **Interactive chat:** Explore PDF content through a Streamlit interface.
+- **Quiz generation:** Create multiple-choice questions from retrieved PDF content.
+- **Flashcard generation:** Create question-and-answer cards from retrieved PDF content.
+- **Document-grounded study materials:** Keep generated answers, quizzes, and flashcards based on retrieved text.
 
 ## Technology Stack
 
 | Technology | Purpose |
 |---|---|
-| Python | Core application development |
-| Streamlit | Interactive web interface |
+| Python | Application development |
+| Streamlit | Web interface |
 | ChromaDB | Vector storage and similarity search |
-| RAG | Document retrieval and answer generation |
-| Embedding Models | Convert document text into vectors |
-| LLM | Generate context-aware answers |
-| PyPDF | PDF text extraction |
-
-*The final embedding model and LLM provider will depend on the application's implementation.*
+| Embedding model | Convert text into vectors for retrieval |
+| OpenAI API | Generate answers and study materials |
+| PyPDF | Extract text from PDFs |
 
 ## How It Works
 
-EduPulse AI follows a two-stage RAG pipeline.
+### 1. Document ingestion
 
-### 1. Document Ingestion
+1. The user uploads a PDF.
+2. The application extracts text and divides it into chunks.
+3. Each chunk is converted into an embedding.
+4. The embeddings and metadata, including page numbers, are stored in ChromaDB.
 
-1. The user uploads a PDF document.
-2. The application extracts text from the PDF.
-3. The extracted text is divided into smaller chunks.
-4. Each chunk is converted into a vector embedding.
-5. The embeddings and associated metadata, including page numbers, are stored in ChromaDB.
+### 2. Retrieval and study material generation
 
-### 2. Question Answering
-
-1. The user submits a question through the Streamlit chat interface.
-2. The question is converted into an embedding.
-3. ChromaDB retrieves the most relevant document chunks.
-4. The retrieved context is provided to the language model.
-5. The model generates an answer based on the retrieved content.
-6. The application displays the answer along with its source page references.
-
-```text
-                PDF Document
-                      |
-                      v
-                Extract Text
-                      |
-                      v
-               Split into Chunks
-                      |
-                      v
-               Generate Embeddings
-                      |
-                      v
-              Store in ChromaDB
-                      |
-                      v
-User Question --> Semantic Search
-                      |
-                      v
-             Retrieve Relevant Chunks
-                      |
-                      v
-              LLM Generates Answer
-                      |
-                      v
-           Answer + Page Citations
-```
+1. The user asks a question or requests a quiz or flashcards.
+2. The application retrieves relevant chunks from ChromaDB.
+3. The retrieved text is passed to the language model.
+4. The application presents the generated response with page references where available.
 
 ## Project Structure
 
 ```text
 edupulse-ai/
-│
-├── src/                # Application source code
-├── tests/              # Test cases
-├── requirements.txt    # Python dependencies
-├── .gitignore          # Git ignore rules
-└── README.md           # Project documentation
+├── app.py
+├── src/
+│   ├── api/
+│   ├── chunking/
+│   ├── embeddings/
+│   ├── ingestion/
+│   ├── llm/
+│   ├── prompts/
+│   ├── retrieval/
+│   ├── utils/
+│   └── vectordb/
+├── tests/
+├── requirements.txt
+├── .gitignore
+└── README.md
 ```
 
 ## Getting Started
@@ -103,24 +68,20 @@ edupulse-ai/
 - Python 3.10 or later
 - Git
 - pip
-- A compatible LLM provider and API key, if required by the selected model
+- An OpenAI API key for model-generated answers, quizzes, and flashcards
 
-### Installation
-
-**1. Clone the repository**
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/mahesh001-sys/edupulse-ai.git
 cd edupulse-ai
 ```
 
-**2. Create a virtual environment**
+### 2. Create and activate a virtual environment
 
 ```bash
 python -m venv .venv
 ```
-
-Activate the environment:
 
 Windows:
 
@@ -134,81 +95,59 @@ macOS / Linux:
 source .venv/bin/activate
 ```
 
-**3. Install dependencies**
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**4. Configure environment variables**
+### 4. Configure your API key
 
-If the selected LLM provider requires an API key, create a `.env` file in the project root and add the required configuration.
+Configure the OpenAI API key using the environment-variable name expected by the application. Keep credentials in a local `.env` file or your environment, and never commit them to GitHub.
 
-```env
-LLM_API_KEY=your_api_key_here
-```
-
-Use the environment variable name expected by the application. Never commit API keys or other credentials to GitHub.
-
-**5. Run the application**
-
-Once the Streamlit entry-point file is configured, start the application using:
+### 5. Run the application
 
 ```bash
-streamlit run src/app.py
+streamlit run app.py
 ```
 
-Open the local URL displayed in your terminal to access the application.
+Open the local URL shown in the terminal.
 
 ## Testing
 
-The repository includes a `tests/` directory for validating application behavior.
-
-Run the tests using:
+Run the test suite from the project root:
 
 ```bash
-python -m pytest
+python -m pytest -q
 ```
+
+The project’s latest reported test run completed with **32 passed**.
 
 ## Project Goals
 
-- Build a working PDF-based question-answering application.
-- Understand and implement the complete RAG pipeline.
-- Improve answer relevance through semantic retrieval.
-- Provide traceable answers using source-page citations.
-- Develop practical experience with Python, vector databases, and generative AI.
+- Build a PDF-based question-answering and study assistant.
+- Implement a complete RAG pipeline.
+- Improve retrieval relevance through semantic search.
+- Provide traceable responses using source-page references.
+- Practice building and testing an AI application with Python, vector databases, and Streamlit.
 
 ## Future Improvements
 
-- Support multiple PDF documents in a single knowledge base.
-- Improve retrieval quality using better embedding models and reranking.
+- Support multiple PDFs in one knowledge base.
+- Improve retrieval with reranking and retrieval-quality evaluation.
 - Add conversation history and document management.
 - Support scanned PDFs using OCR.
-- Improve error handling and document-processing feedback.
+- Improve processing feedback and error handling.
 - Deploy the application for public access.
-
-## Learning Outcomes
-
-Through this project, I am developing practical knowledge of:
-
-- Retrieval-Augmented Generation (RAG)
-- PDF text extraction and document processing
-- Text chunking and embedding generation
-- Vector databases and semantic similarity search
-- LLM-based question answering
-- Building interactive AI applications with Streamlit
-- Testing and maintaining Python applications
 
 ## Author
 
-**Banoth Mahesh Kumar**
-
+**Banoth Mahesh Kumar**  
 B.Tech Information Technology | 2026 Graduate
 
-[GitHub Profile](https://github.com/mahesh001-sys)
-
-[EduPulse AI Repository](https://github.com/mahesh001-sys/edupulse-ai)
+- [GitHub Profile](https://github.com/mahesh001-sys)
+- [EduPulse AI Repository](https://github.com/mahesh001-sys/edupulse-ai)
 
 ---
 
-*EduPulse AI is an educational project developed to explore Retrieval-Augmented Generation and document-based AI question answering.*
+*EduPulse AI is an educational project exploring Retrieval-Augmented Generation and document-based AI study tools.*
