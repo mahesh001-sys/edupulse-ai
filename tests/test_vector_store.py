@@ -69,3 +69,61 @@ def test_delete_document(vector_store):
     )
 
     assert results == []
+
+
+@pytest.mark.parametrize("n_results", [0, -1, -5, True, 1.5, "2"])
+def test_invalid_n_results_is_rejected(vector_store, n_results):
+    with pytest.raises(ValueError, match="n_results"):
+        vector_store.search(
+            query="What is Java?",
+            n_results=n_results,
+        )
+
+
+def test_missing_document_id_returns_no_results(vector_store):
+    vector_store.add_chunks(
+        [
+            DocumentChunk(
+                text="Java is an object-oriented programming language.",
+                page_number=2,
+            )
+        ],
+        document_id="existing_document",
+    )
+
+    results = vector_store.search(
+        query="What is Java?",
+        document_id="missing_document",
+    )
+
+    assert results == []
+
+
+def test_document_filter_does_not_return_other_documents(vector_store):
+    vector_store.add_chunks(
+        [
+            DocumentChunk(
+                text="Java is an object-oriented programming language.",
+                page_number=2,
+            )
+        ],
+        document_id="document_a",
+    )
+    vector_store.add_chunks(
+        [
+            DocumentChunk(
+                text="Java is a programming language.",
+                page_number=8,
+            )
+        ],
+        document_id="document_b",
+    )
+
+    results = vector_store.search(
+        query="What is Java?",
+        n_results=4,
+        document_id="document_a",
+    )
+
+    assert results
+    assert all(result["document_id"] == "document_a" for result in results)

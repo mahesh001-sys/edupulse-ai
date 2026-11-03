@@ -3,10 +3,11 @@
 import hashlib
 from pathlib import Path
 from typing import List, Optional
+
 import chromadb
-from src.embeddings.embedding_function import create_embedding_function
 
 from src.chunking.text_chunker import DocumentChunk
+from src.embeddings.embedding_function import create_embedding_function
 
 
 class VectorStore:
@@ -42,7 +43,7 @@ class VectorStore:
         chunks: List[DocumentChunk],
         document_id: str,
     ) -> int:
-        """Store chunks with their original PDF page numbers."""
+        """Store PDF chunks with their original page numbers."""
         if not document_id.strip():
             raise ValueError("document_id cannot be empty.")
 
@@ -88,19 +89,27 @@ class VectorStore:
         if not query.strip():
             raise ValueError("Search query cannot be empty.")
 
-        if n_results < 1:
-            raise ValueError("n_results must be at least 1.")
+        if (
+            isinstance(n_results, bool)
+            or not isinstance(n_results, int)
+            or n_results < 1
+        ):
+            raise ValueError("n_results must be a positive integer.")
 
-        if self.collection.count() == 0:
+        if document_id is not None and not document_id.strip():
+            raise ValueError("document_id cannot be empty.")
+
+        collection_count = self.collection.count()
+        if collection_count == 0:
             return []
 
         search_args = {
             "query_texts": [query],
-            "n_results": min(n_results, self.collection.count()),
+            "n_results": min(n_results, collection_count),
             "include": ["documents", "metadatas", "distances"],
         }
 
-        if document_id:
+        if document_id is not None:
             search_args["where"] = {"document_id": document_id}
 
         results = self.collection.query(**search_args)
