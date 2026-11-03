@@ -98,3 +98,39 @@ def test_index_pdf_extracts_chunks_and_stores_them(monkeypatch, tmp_path):
         expected_chunks,
         "sample-pdf-id",
     )
+import pytest
+
+@pytest.mark.parametrize(
+    "question",
+    ["", " ", "\n\t"],
+)
+def test_answer_question_rejects_blank_questions(question):
+    pipeline = rag_pipeline.RAGPipeline.__new__(
+        rag_pipeline.RAGPipeline
+    )
+
+    with pytest.raises(ValueError, match="Question cannot be empty"):
+        pipeline.answer_question(question, "sample-pdf")
+
+
+def test_answer_question_rejects_missing_document_id():
+    pipeline = rag_pipeline.RAGPipeline.__new__(
+        rag_pipeline.RAGPipeline
+    )
+
+    with pytest.raises(ValueError, match="processed PDF is required"):
+        pipeline.answer_question("What is the deadline?", "")
+
+
+@pytest.mark.parametrize("n_results", [0, -1, -5])
+def test_answer_question_rejects_invalid_result_count(n_results):
+    pipeline = rag_pipeline.RAGPipeline.__new__(
+        rag_pipeline.RAGPipeline
+    )
+
+    with pytest.raises(ValueError, match="n_results must be a positive integer"):
+        pipeline.answer_question(
+            question="What is the deadline?",
+            document_id="sample-pdf",
+            n_results=n_results,
+        )

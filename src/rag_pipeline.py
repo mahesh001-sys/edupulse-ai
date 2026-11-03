@@ -1,3 +1,4 @@
+
 """RAG pipeline for EduPulse AI."""
 
 import os
@@ -75,6 +76,15 @@ class RAGPipeline:
 
         if not document_id:
             raise ValueError("A processed PDF is required.")
+
+        if (
+            isinstance(n_results, bool)
+            or not isinstance(n_results, int)
+            or n_results <= 0
+        ):
+            raise ValueError(
+                "n_results must be a positive integer."
+            )
 
         results = self.retriever.retrieve(
             question=question,
