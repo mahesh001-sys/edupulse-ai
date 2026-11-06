@@ -134,3 +134,95 @@ def test_answer_question_rejects_invalid_result_count(n_results):
             document_id="sample-pdf",
             n_results=n_results,
         )
+
+def test_generate_quiz_bypasses_retrieval_threshold(monkeypatch, tmp_path):
+    vector_store = Mock()
+    retriever = Mock()
+    study_generator = Mock()
+
+    monkeypatch.setattr(rag_pipeline, "VectorStore", lambda db_path: vector_store)
+    monkeypatch.setattr(rag_pipeline, "Retriever", lambda store: retriever)
+    monkeypatch.setattr(
+        rag_pipeline,
+        "StudyMaterialGenerator",
+        lambda client, model: study_generator,
+    )
+
+    retriever.retrieve.return_value = [{
+        "text": "Mars is called the Red Planet.",
+        "page_number": 1,
+        "document_id": "sample-pdf",
+        "distance": 0.8917,
+    }]
+    study_generator.generate_quiz.return_value = [{"question": "Why is Mars red?"}]
+
+    pipeline = rag_pipeline.RAGPipeline(
+        api_key="test-key",
+        db_path=str(tmp_path / "test_chroma"),
+    )
+
+    result = pipeline.generate_quiz("sample-pdf", num_questions=1)
+
+    assert len(result["questions"]) == 1
+    assert result["message"] == ""
+    retriever.retrieve.assert_called_once_with(
+        question=(
+            "Key facts, concepts, definitions, processes, and important "
+            "details for a study quiz"
+        ),
+        n_results=10,
+        document_id="sample-pdf",
+        apply_threshold=False,
+    )
+    study_generator.generate_quiz.assert_called_once_with(
+        context="[Page 1]\nMars is called the Red Planet.",
+        num_questions=1,
+    )
+
+
+def test_generate_flashcards_bypasses_retrieval_threshold(monkeypatch, tmp_path):
+    vector_store = Mock()
+    retriever = Mock()
+    study_generator = Mock()
+
+    monkeypatch.setattr(rag_pipeline, "VectorStore", lambda db_path: vector_store)
+    monkeypatch.setattr(rag_pipeline, "Retriever", lambda store: retriever)
+    monkeypatch.setattr(
+        rag_pipeline,
+        "StudyMaterialGenerator",
+        lambda client, model: study_generator,
+    )
+
+    retriever.retrieve.return_value = [{
+        "text": "Mars has two moons: Phobos and Deimos.",
+        "page_number": 1,
+        "document_id": "sample-pdf",
+        "distance": 0.9464,
+    }]
+    study_generator.generate_flashcards.return_value = [{
+        "front": "What are the moons of Mars?",
+        "back": "Phobos and Deimos.",
+    }]
+
+    pipeline = rag_pipeline.RAGPipeline(
+        api_key="test-key",
+        db_path=str(tmp_path / "test_chroma"),
+    )
+
+    result = pipeline.generate_flashcards("sample-pdf", num_cards=1)
+
+    assert len(result["flashcards"]) == 1
+    assert result["message"] == ""
+    retriever.retrieve.assert_called_once_with(
+        question=(
+            "Key terms, definitions, concepts, facts, and explanations "
+            "useful for study flashcards"
+        ),
+        n_results=10,
+        document_id="sample-pdf",
+        apply_threshold=False,
+    )
+    study_generator.generate_flashcards.assert_called_once_with(
+        context="[Page 1]\nMars has two moons: Phobos and Deimos.",
+        num_cards=1,
+    )

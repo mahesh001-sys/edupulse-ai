@@ -28,15 +28,16 @@ class Retriever:
         question: str,
         document_id: str,
         n_results: int = 4,
+        apply_threshold: bool = True,
     ) -> list[dict]:
-        """Return chunks whose retrieval distance passes the cutoff."""
+        """Return relevant chunks, optionally bypassing the distance cutoff."""
         results = self.vector_store.search(
             query=question,
             n_results=n_results,
             document_id=document_id,
         )
 
-        if self.max_distance is None:
+        if not apply_threshold or self.max_distance is None:
             return results
 
         return [

@@ -192,6 +192,7 @@ class RAGPipeline:
             ),
             n_results=10,
             document_id=document_id,
+            apply_threshold=False,
         )
 
         if not results:
@@ -241,6 +242,7 @@ class RAGPipeline:
             ),
             n_results=10,
             document_id=document_id,
+            apply_threshold=False,
         )
 
         if not results:
